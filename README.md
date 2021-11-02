@@ -1,6 +1,17 @@
 # 🎊 Wanted X Wecode PreOnBoarding Backend Course | 무한루프-2팀
 원티드 1주차 기업 과제 : Aimmo Assignment Project
   ✅ Aimmo 기업 과제입니다.
+  
+# 팀 무한루프
+- 1팀 : 손희정, 송치헌, 하예준
+- 2팀 : (팀장)오지윤, 유동헌
+
+# 역할
+- 기능 별로 나누지 않고 모든 API를 함께 Pair Programming으로 구현하였습니다.
+
+# TIL blog
+- 오지윤 : 
+- 유동헌 : 
 
 # How to Start
 
@@ -39,7 +50,7 @@ python manage.py runserver
 - Slack
 - Google Meeting
 
-### api 명세서
+# api 명세서
 
 ## users
 1. 회원가입 API
