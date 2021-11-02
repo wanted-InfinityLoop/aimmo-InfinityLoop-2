@@ -11,7 +11,7 @@
 
 # TIL blog
 - 오지윤 : 
-- 유동헌 : 
+- 유동헌 : https://velog.io/@dhhyy/프리온보딩-1주차-TIL-과제-Aimmo-Assignment
 
 # How to Start
 
