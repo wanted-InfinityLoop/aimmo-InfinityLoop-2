@@ -15,3 +15,12 @@ class Posting(AbstractTimeStamped):
 
     class Meta:
         db_table = "postings"
+
+class Comment(models.Model):
+    content        = models.CharField(max_length=500)
+    user           = models.ForeignKey("users.User", on_delete=models.CASCADE)
+    posting        = models.ForeignKey("Posting", on_delete=models.CASCADE)
+    parent_comment = models.ForeignKey("self", on_delete=models.CASCADE, null=True)
+
+    class Meta:
+        db_table = 'comments'
