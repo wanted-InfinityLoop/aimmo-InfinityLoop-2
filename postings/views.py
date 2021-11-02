@@ -191,9 +191,11 @@ class CommentView(APIView):
             posting = Posting.objects.get(id=posting_id)
             
             Comment.objects.create(
-                content = content,
-                user    = user,
-                posting = posting 
+                content           = content,
+                user              = user,
+                posting           = posting,
+                depth             = 0,
+                parent_comment_id = Comment.objects.filter(posting__id=posting.id).first().id
             )
             
             return JsonResponse({"message" : "SUCCESS"}, status=200)
