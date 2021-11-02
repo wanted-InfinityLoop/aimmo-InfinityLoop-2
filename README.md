@@ -32,13 +32,13 @@ python manage.py runserver
 
 ### Devops
 - MongoDB
-- AWS(EC2)
 
 ### Cowork (혹은 Cooperation)
 - Git, Github Project
 - Swagger2.0 (For API Document)
 - Slack
 - Google Meeting
+
 ### api 명세서
 
 ## users
