@@ -7,14 +7,45 @@ from drf_yasg import openapi
 from django.http import JsonResponse
 from django.views import View
 
-from .models import Posting
+from .models import Category, Posting
 from core.utils import login_decorator
 from .serializer import PostingSerializer
 
-
-class PostingView(APIView):
+class PostingCreateView(APIView):
     '''
-    # 게시글 불러오기
+    # 게시글 작성
+    '''
+
+    parameter_token = openapi.Parameter(
+        "Authorization",
+        openapi.IN_HEADER,
+        description = "access_token",
+        type = openapi.TYPE_STRING
+    )
+    @swagger_auto_schema(request_body = PostingSerializer, manual_parameters = [parameter_token])
+    @login_decorator
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            user = request.user
+
+            posting      = Posting.objects.create(
+                title    = data["title"],
+                text     = data["text"],
+                category = Category.objects.get(id=data["category"]),
+                author   = user,
+            )
+
+            return JsonResponse(
+                {"message": f"{posting.title} has successfully posted"}, status=201
+            )
+        except KeyError:
+            return JsonResponse({"message": "KEY_ERROR"}, status=400)
+        
+class PostingView(APIView):
+    
+    '''
+    # 게시글 불러오기 / 게시글 detail view
     '''
 
     def get(self, request, posting_id):
@@ -26,18 +57,20 @@ class PostingView(APIView):
         posting = Posting.objects.get(id=posting_id)
 
         result = {
-            "id": posting.id,
-            "author": posting.author.name,
-            "title": posting.title,
-            "text": posting.text,
-            "created_time": posting.created_time,
-            "updated_at": posting.updated_at,
+            "id"         : posting.id,
+            "author"     : posting.author.name,
+            "title"      : posting.title,
+            "text"       : posting.text,
+            "category"   : posting.category.name,
+            "created_at" : posting.created_at,
+            "updated_at" : posting.updated_at,
         }
-        return JsonResponse({"result": result}, status=200)    
+        return JsonResponse({"result": result}, status=200)
     
     '''
     # 게시글 수정
     '''
+    
     parameter_token = openapi.Parameter(
         "Authorization",
         openapi.IN_HEADER,
@@ -58,8 +91,9 @@ class PostingView(APIView):
             if request.user.id != posting.author_id:
                 return JsonResponse({"message": "FORBIDDEN"}, status=403)
 
-            data = json.loads(request.body)
+            data         = json.loads(request.body)
             posting.text = data["text"]
+            
             posting.save()
 
             return JsonResponse(
@@ -88,56 +122,28 @@ class PostingView(APIView):
                 return JsonResponse({"message": "FORBIDDEN"}, status=403)
 
             posting.delete()
-
+            
+            # 확인 필요
             return JsonResponse(
                 {"message": f"{posting.title} has successfully deleted"}, status=204
             )
+            
         except KeyError:
             return JsonResponse({"message": "KEY_ERROR"}, status=400)
-
-
-class PostingCreateView(APIView):
-    '''
-    # 게시글 작성
-    '''
-
-    parameter_token = openapi.Parameter(
-        "Authorization",
-        openapi.IN_HEADER,
-        description = "access_token",
-        type = openapi.TYPE_STRING
-    )
-    @swagger_auto_schema(request_body = PostingSerializer, manual_parameters = [parameter_token])
-    @login_decorator
-    def post(self, request):
-        try:
-            data = json.loads(request.body)
-            user = request.user
-
-            posting = Posting.objects.create(
-                title=data["title"],
-                text=data["text"],
-                author=user,
-            )
-
-            return JsonResponse(
-                {"message": f"{posting.title} has successfully posted"}, status=201
-            )
-        except KeyError:
-            return JsonResponse({"message": "KEY_ERROR"}, status=400)
-
 
 class PostingListView(APIView):
     '''
     # 게시글 목록 불러오기
     '''
-
+    
+    # pasination 확인 필요 in swagger
+     
     def get(self, request):
         try:
             OFFSET = int(request.GET.get("offset", 0))
-            LIMIT = int(request.GET.get("limit", 10))
+            LIMIT  = int(request.GET.get("limit", 10))
 
-            postings = Posting.objects.all().order_by("-created_time")[
+            postings = Posting.objects.all().order_by("-created_at")[
                 OFFSET : OFFSET + LIMIT
             ]
 
@@ -145,12 +151,13 @@ class PostingListView(APIView):
                 "count": len(postings),
                 "postings": [
                     {
-                        "id": posting.id,
-                        "author": posting.author.name,
-                        "title": posting.title,
-                        "text": posting.text,
-                        "created_time": posting.created_time,
-                        "updated_at": posting.updated_at,
+                        "id"         : posting.id,
+                        "author"     : posting.author.name,
+                        "title"      : posting.title,
+                        "text"       : posting.text,
+                        "category"   : posting.category.name,
+                        "created_at" : posting.created_at,
+                        "updated_at" : posting.updated_at,
                     }
                     for posting in postings
                 ],
