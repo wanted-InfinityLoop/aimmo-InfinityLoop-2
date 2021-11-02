@@ -11,3 +11,8 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = ["content"]
+
+class SearchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Posting
+        fields = ["author"]

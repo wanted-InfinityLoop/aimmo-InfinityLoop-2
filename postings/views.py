@@ -7,9 +7,10 @@ from drf_yasg import openapi
 from django.http import JsonResponse
 from django.views import View
 
+from users.models import User
 from .models import Category, Posting, Comment
 from core.utils import login_decorator
-from .serializer import PostingSerializer, CommentSerializer
+from .serializer import PostingSerializer, CommentSerializer, SearchSerializer
 
 class PostingCreateView(APIView):
     '''
@@ -168,6 +169,11 @@ class PostingListView(APIView):
             return JsonResponse({"message": "KEY_ERROR"}, status=400)
 
 class CommentView(APIView):
+
+    '''
+    # 댓글, 대댓글 생성하기
+    '''
+
     parameter_token = openapi.Parameter(
         "Authorization",
         openapi.IN_HEADER,
@@ -202,3 +208,51 @@ class CommentView(APIView):
             
         except KeyError:
             return JsonResponse({"key error" : "KEY_ERROR"}, status=400)
+
+class SearchView(APIView):
+     
+    '''
+    # 작성자 또는 제목으로 검색하기
+    '''
+    #1. 검색어를 가져온다.
+    #2. 검색어를 해당 모델에서 필터링한다.
+    #3. 결과에 따라 응답한다.
+    @swagger_auto_schema(operation_description="검색하기", request_body = SearchSerializer)
+    def post(self, request):
+            try:
+                data    = json.loads(request.body)
+                author = data.get("author", None)
+                
+                if not author:
+                    return JsonResponse({"message" : "CHECK_YOUR_INPUT"}, status=400)
+                
+                if not User.objects.filter(name=author).exists():
+                    return JsonResponse({"message" : "NOT_FOUND_USER"}, status=400)
+                
+                user = User.objects.get(name=author)
+                if user:
+                    postings = Posting.objects.filter(author=user)
+
+                    result = {
+                        "count": len(postings),
+                        "postings": [
+                            {
+                                "id"         : posting.id,
+                                "author"     : posting.author.name,
+                                "title"      : posting.title,
+                                "text"       : posting.text,
+                                "category"   : posting.category.name,
+                                "created_at" : posting.created_at,
+                                "updated_at" : posting.updated_at,
+                            }
+                            for posting in postings
+                        ],
+                    }
+
+                return JsonResponse({"result": result}, status=200)
+
+            except User.DoesNotExist:
+                return JsonResponse({"model error" : "MODEL_ERROR"}, status=400)
+
+            except KeyError:
+                return JsonResponse({"key error" : "KEY_ERROR"}, status=400)
