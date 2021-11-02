@@ -7,9 +7,9 @@ from drf_yasg import openapi
 from django.http import JsonResponse
 from django.views import View
 
-from .models import Category, Posting
+from .models import Category, Posting, Comment
 from core.utils import login_decorator
-from .serializer import PostingSerializer
+from .serializer import PostingSerializer, CommentSerializer
 
 class PostingCreateView(APIView):
     '''
@@ -166,3 +166,37 @@ class PostingListView(APIView):
             return JsonResponse({"result": result}, status=200)
         except KeyError:
             return JsonResponse({"message": "KEY_ERROR"}, status=400)
+
+class CommentView(APIView):
+    parameter_token = openapi.Parameter(
+        "Authorization",
+        openapi.IN_HEADER,
+        description = "access_token",
+        type = openapi.TYPE_STRING
+    )
+    @swagger_auto_schema(request_body = CommentSerializer, manual_parameters = [parameter_token])
+    @login_decorator
+    def post(self, request, posting_id):
+        try:
+            data    = json.loads(request.body)
+            user    = request.user
+            content = data.get('content', None)
+            
+            if not (content and posting_id):
+                return JsonResponse({"message" : "CHECK_YOUR_INPUT"}, status=400)
+            
+            if not Posting.objects.filter(id=posting_id).exists():
+                return JsonResponse({"message" : "NOT_POSTING_ID"}, status=400)
+            
+            posting = Posting.objects.get(id=posting_id)
+            
+            Comment.objects.create(
+                content = content,
+                user    = user,
+                posting = posting 
+            )
+            
+            return JsonResponse({"message" : "SUCCESS"}, status=200)
+            
+        except KeyError:
+            return JsonResponse({"key error" : "KEY_ERROR"}, status=400)
