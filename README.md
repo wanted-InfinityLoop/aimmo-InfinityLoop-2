@@ -10,7 +10,7 @@
 - 기능 별로 나누지 않고 모든 API를 함께 Pair Programming으로 구현하였습니다.
 
 # TIL blog
-- 오지윤 : 
+- 오지윤 : https://odreystella.github.io/2021/11/03/TIL_01_django_swagger/
 - 유동헌 : https://velog.io/@dhhyy/프리온보딩-1주차-TIL-과제-Aimmo-Assignment
 
 # How to Start
