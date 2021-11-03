@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-# aimmo-InfinityLoop-2
-원티드 1주차 기업과제: Aimmo Assignment Project
-=======
 # 🎊 Wanted X Wecode PreOnBoarding Backend Course | 무한루프-2팀
 원티드 1주차 기업 과제 : Aimmo Assignment Project
   ✅ Aimmo 기업 과제입니다.
@@ -285,4 +281,3 @@ Response
   }
 }
 ```
->>>>>>> 32f4c7abe8830d804e3e6734580b4802d76d46e6
