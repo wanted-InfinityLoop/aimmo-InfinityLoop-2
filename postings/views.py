@@ -6,6 +6,7 @@ from drf_yasg import openapi
 
 from django.http import JsonResponse
 from django.views import View
+from django.db.models import Q
 
 from users.models import User
 from .models import Category, Posting, Comment
@@ -221,37 +222,36 @@ class SearchView(APIView):
     def post(self, request):
             try:
                 data    = json.loads(request.body)
-                author = data.get("author", None)
+                keyword = data.get("author", None)
                 
-                if not author:
+                if not keyword:
                     return JsonResponse({"message" : "CHECK_YOUR_INPUT"}, status=400)
                 
-                if not User.objects.filter(name=author).exists():
-                    return JsonResponse({"message" : "NOT_FOUND_USER"}, status=400)
+                if not Posting.objects.filter(Q(author__name=keyword)|Q(title__icontains=keyword)|Q(text__icontains=keyword)).exists():
+                    return JsonResponse({"message" : "NOT_FOUND_POSTING"}, status=400)
                 
-                user = User.objects.get(name=author)
-                if user:
-                    postings = Posting.objects.filter(author=user)
+                
+                postings = Posting.objects.filter(Q(author__name=keyword)|Q(title__icontains=keyword)|Q(text__icontains=keyword))
 
-                    result = {
-                        "count": len(postings),
-                        "postings": [
-                            {
-                                "id"         : posting.id,
-                                "author"     : posting.author.name,
-                                "title"      : posting.title,
-                                "text"       : posting.text,
-                                "category"   : posting.category.name,
-                                "created_at" : posting.created_at,
-                                "updated_at" : posting.updated_at,
-                            }
-                            for posting in postings
-                        ],
-                    }
+                result = {
+                    "count": len(postings),
+                    "postings": [
+                        {
+                            "id"         : posting.id,
+                            "author"     : posting.author.name,
+                            "title"      : posting.title,
+                            "text"       : posting.text,
+                            "category"   : posting.category.name,
+                            "created_at" : posting.created_at,
+                            "updated_at" : posting.updated_at,
+                        }
+                        for posting in postings
+                    ],
+                }
 
                 return JsonResponse({"result": result}, status=200)
 
-            except User.DoesNotExist:
+            except postings.DoesNotExist:
                 return JsonResponse({"model error" : "MODEL_ERROR"}, status=400)
 
             except KeyError:
