@@ -1,8 +1,8 @@
 from django.urls import path, include
 from django.conf.urls import url
-from rest_framework.permissions import AllowAny
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from rest_framework.permissions import AllowAny
 
 schema_url_patterns = [
     path("users", include("users.urls")),
