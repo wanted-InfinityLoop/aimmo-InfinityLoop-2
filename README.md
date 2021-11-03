@@ -16,9 +16,9 @@
 # How to Start
 
 ### Required
-- Python3.7🔺
-- Django (version 기입)🔺
-- MongoDB (version 기입)🔺
+- Python 3.8
+- djongo==1.3.6
+- MongoDB
 
 ### Add setting file
 - Project폴더 안에 my_settings.py 파일 생성 후 내용 추가
@@ -224,5 +224,60 @@ Request Body
 Response
 {
     "message": "SUCCESS"
+}
+```
+7. board posing search API
+    - curl -X POST "http://127.0.0.1:8000/postings/search
+    - 작성자 명, 타이틀 명으로 게시판 내 게시글 검색 기능 구현
+```python
+Request Body
+{
+  "author": "지석진"
+}
+```
+```python
+Response
+{
+  "result": {
+    "count": 4,
+    "postings": [
+      {
+        "id": 3,
+        "author": "지석진",
+        "title": "testing post_2",
+        "text": "testing post text",
+        "category": "배송문의",
+        "created_at": "2021-11-02T09:02:04.461Z",
+        "updated_at": "2021-11-02T09:02:04.461Z"
+      },
+      {
+        "id": 4,
+        "author": "지석진",
+        "title": "testing post_4",
+        "text": "testing post text",
+        "category": "배송문의",
+        "created_at": "2021-11-02T09:06:24.499Z",
+        "updated_at": "2021-11-02T09:06:24.499Z"
+      },
+      {
+        "id": 5,
+        "author": "지석진",
+        "title": "testing post_5",
+        "text": "testing post text",
+        "category": "배송문의",
+        "created_at": "2021-11-02T09:06:32.121Z",
+        "updated_at": "2021-11-02T09:06:32.121Z"
+      },
+      {
+        "id": 6,
+        "author": "지석진",
+        "title": "testing post_6",
+        "text": "testing post text",
+        "category": "배송문의",
+        "created_at": "2021-11-02T09:06:39.632Z",
+        "updated_at": "2021-11-02T09:06:39.633Z"
+      }
+    ]
+  }
 }
 ```
