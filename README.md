@@ -27,6 +27,42 @@
 (내용 삽입)
 ```
 
+### 프로젝트 구조
+```
+
+├── config
+│   ├── asgi.py
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+├── core
+│   ├── admin.py
+│   ├── apps.py
+│   ├── models.py
+│   ├── tests.py
+│   ├── utils.py
+│   └── views.py
+├── postings
+│   ├── admin.py
+│   ├── apps.py
+│   ├── models.py
+│   ├── serializer.py
+│   ├── tests.py
+│   ├── urls.py
+│   └── views.py
+├── users
+│   ├── admin.py
+│   ├── apps.py
+│   ├── models.py
+│   ├── serializer.py
+│   ├── tests.py
+│   ├── urls.py
+│   └── views.py
+├── manage.py
+├── my_settings.py
+├── README.md
+├── requirements.txt
+```
 ### Commnads
 ```shell
 python manage.py makemigration
