@@ -1,5 +1,7 @@
 import json
 
+from django.db.models.fields import PositiveIntegerField
+
 from rest_framework.views import APIView
 from drf_yasg.utils       import swagger_auto_schema
 from drf_yasg             import openapi
@@ -185,9 +187,10 @@ class CommentView(APIView):
     @login_decorator
     def post(self, request, posting_id):
         try:
-            data    = json.loads(request.body)
-            user    = request.user
-            content = data.get('content', None)
+            data       = json.loads(request.body)
+            user       = request.user
+            content    = data.get("content", None)
+            comment_id = data.get("comment_id", None)
             
             if not (content and posting_id):
                 return JsonResponse({"message" : "CHECK_YOUR_INPUT"}, status=400)
@@ -197,15 +200,25 @@ class CommentView(APIView):
             
             posting = Posting.objects.get(id=posting_id)
             
+            if not comment_id:
+                
+                Comment.objects.create(
+                    content        = content,
+                    user           = user,
+                    posting        = posting,
+                    parent_comment_id = 0
+                )
+                
+                return JsonResponse({"message" : "POST COMMENT"}, status=200)
+                
             Comment.objects.create(
                 content           = content,
                 user              = user,
                 posting           = posting,
-                depth             = 0,
-                parent_comment_id = Comment.objects.filter(posting__id=posting.id).first().id
+                parent_comment_id = Comment.objects.get(id=comment_id).id
             )
             
-            return JsonResponse({"message" : "SUCCESS"}, status=200)
+            return JsonResponse({"message" : "POST RECOMMENT"}, status=200)
             
         except KeyError:
             return JsonResponse({"key error" : "KEY_ERROR"}, status=400)

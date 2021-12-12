@@ -21,7 +21,6 @@ class Comment(models.Model):
     user           = models.ForeignKey("users.User", on_delete=models.CASCADE)
     posting        = models.ForeignKey("Posting", on_delete=models.CASCADE)
     parent_comment = models.ForeignKey("self", on_delete=models.CASCADE, null=True)
-    depth          = models.IntegerField()
     
     class Meta:
         db_table = 'comments'
