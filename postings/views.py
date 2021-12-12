@@ -1,17 +1,17 @@
 import json
 
 from rest_framework.views import APIView
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
+from drf_yasg.utils       import swagger_auto_schema
+from drf_yasg             import openapi
 
-from django.http import JsonResponse
-from django.views import View
+from django.http      import JsonResponse
+from django.views     import View
 from django.db.models import Q
 
 from users.models import User
-from .models import Category, Posting, Comment
-from core.utils import login_decorator
-from .serializer import PostingSerializer, CommentSerializer, SearchSerializer
+from .models      import Category, Posting, Comment
+from core.utils   import login_decorator
+from .serializer  import PostingSerializer, CommentSerializer, SearchSerializer
 
 class PostingCreateView(APIView):
     '''
@@ -229,7 +229,6 @@ class SearchView(APIView):
                 
                 if not Posting.objects.filter(Q(author__name=keyword)|Q(title__icontains=keyword)|Q(text__icontains=keyword)).exists():
                     return JsonResponse({"message" : "NOT_FOUND_POSTING"}, status=400)
-                
                 
                 postings = Posting.objects.filter(Q(author__name=keyword)|Q(title__icontains=keyword)|Q(text__icontains=keyword))
 
