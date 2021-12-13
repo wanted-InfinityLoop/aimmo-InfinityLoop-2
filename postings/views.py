@@ -223,6 +223,54 @@ class CommentView(APIView):
         except KeyError:
             return JsonResponse({"key error" : "KEY_ERROR"}, status=400)
 
+
+class CommentListView(APIView):
+    
+    '''
+    # 댓글, 대댓글 조회하기
+    '''
+    
+    # CommentView, 
+    
+    
+    # comment, parent_comment_id를 식별해서 이에 속하는 글을 조회할 수 있게 한다
+    # comment   = parent_id = 0
+    # recomment = parent_id = comment_id
+    # posting_id
+    
+    # CommentView 클래스에 하나로 하는 것 알아보기
+    # Pagination 
+    # drf - yasg, parameter 설정 알아보기
+    
+    parameter_token = openapi.Parameter(
+        "parent_comment_id",
+        openapi.IN_QUERY,
+        description = "parent_comment_id",
+        type = openapi.TYPE_STRING
+    )
+    @swagger_auto_schema(manual_parameters = [parameter_token])
+    def get(self, request, posting_id):
+        parent_comment_id = int(request.GET.get("parent_comment_id","0"))
+        
+        if parent_comment_id == 0:
+            all_comments = Comment.objects.filter(posting_id=posting_id, parent_comment_id=0)
+            
+        else:
+            all_comments = Comment.objects.filter(posting_id=posting_id, parent_comment_id=parent_comment_id)
+        
+        comments = all_comments
+        
+        comment_list = [
+            {
+                "content"           : comment.content,
+                "user"              : comment.user.email,
+                "posting_title"     : comment.posting.title,
+                "parent_comment_id" : comment.parent_comment_id
+                } for comment in comments
+            ]
+        return JsonResponse({"message" : comment_list}, status=200)
+    
+    
 class SearchView(APIView):
      
     '''
@@ -268,3 +316,13 @@ class SearchView(APIView):
 
             except KeyError:
                 return JsonResponse({"key error" : "KEY_ERROR"}, status=400)
+            
+            
+# test_param = openapi.Parameter('test', openapi.IN_QUERY, description="test manual param", type=openapi.TYPE_BOOLEAN)
+# user_response = openapi.Response('response description', UserSerializer)
+
+# @swagger_auto_schema(method='get', manual_parameters=[test_param], responses={200: user_response})
+# @swagger_auto_schema(methods=['put', 'post'], request_body=UserSerializer)
+# @api_view(['GET', 'PUT', 'POST'])
+# def user_detail(request, pk):
+#     ...
