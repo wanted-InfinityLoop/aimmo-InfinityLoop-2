@@ -183,6 +183,7 @@ class CommentView(APIView):
         description = "access_token",
         type = openapi.TYPE_STRING
     )
+    
     @swagger_auto_schema(request_body = CommentSerializer, manual_parameters = [parameter_token])
     @login_decorator
     def post(self, request, posting_id):
@@ -240,37 +241,60 @@ class CommentListView(APIView):
     
     # CommentView 클래스에 하나로 하는 것 알아보기
     # Pagination 
-    # drf - yasg, parameter 설정 알아보기
+    # drf-yasg, parameter 설정 알아보기
+    # select_related, 
     
-    parameter_token = openapi.Parameter(
+    query_parent_comment_id = openapi.Parameter(
         "parent_comment_id",
         openapi.IN_QUERY,
         description = "parent_comment_id",
+        type = openapi.TYPE_INTEGER
+    )
+    query_limit = openapi.Parameter(
+        "limit",
+        openapi.IN_QUERY,
+        description = "limit",
         type = openapi.TYPE_STRING
     )
-    @swagger_auto_schema(manual_parameters = [parameter_token])
+    query_offset = openapi.Parameter(
+        "offset",
+        openapi.IN_QUERY,
+        description = "offset",
+        type = openapi.TYPE_STRING
+    )
+    
+    @swagger_auto_schema(manual_parameters = [query_parent_comment_id, query_limit, query_offset])
     def get(self, request, posting_id):
-        parent_comment_id = int(request.GET.get("parent_comment_id","0"))
         
-        if parent_comment_id == 0:
-            all_comments = Comment.objects.filter(posting_id=posting_id, parent_comment_id=0)
+        try:
+            parent_comment_id = request.GET.get("parent_comment_id",0)
+            offset            = int(request.GET.get("offset", 0))
+            limit             = int(request.GET.get("limit", 10))
             
-        else:
-            all_comments = Comment.objects.filter(posting_id=posting_id, parent_comment_id=parent_comment_id)
+            print(type(offset))
+            print(type(limit))
+            
+            if parent_comment_id == 0:
+                all_comments = Comment.objects.filter(posting_id=posting_id, parent_comment_id=0)
+                
+            else:
+                all_comments = Comment.objects.filter(posting_id=posting_id, parent_comment_id=parent_comment_id)
+            
+            comments = all_comments[offset:offset+limit]
+            
+            comment_list = [
+                {
+                    "content"           : comment.content,
+                    "user"              : comment.user.email,
+                    "posting_title"     : comment.posting.title,
+                    "parent_comment_id" : comment.parent_comment_id
+                    } for comment in comments
+                ]
+            return JsonResponse({"message" : comment_list}, status=200)
         
-        comments = all_comments
+        except TypeError.offset:
+            return JsonResponse({"message" : "TYPE ERROR"}, status=400)
         
-        comment_list = [
-            {
-                "content"           : comment.content,
-                "user"              : comment.user.email,
-                "posting_title"     : comment.posting.title,
-                "parent_comment_id" : comment.parent_comment_id
-                } for comment in comments
-            ]
-        return JsonResponse({"message" : comment_list}, status=200)
-    
-    
 class SearchView(APIView):
      
     '''

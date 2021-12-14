@@ -1,6 +1,6 @@
 from postings.serializer import SearchSerializer
-from django.urls import path
-from . import views
+from django.urls         import path
+from .                   import views
 
 urlpatterns = [
     path("", views.PostingCreateView.as_view()),
