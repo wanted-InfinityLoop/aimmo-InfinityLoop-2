@@ -135,6 +135,7 @@ class PostingView(APIView):
         except KeyError:
             return JsonResponse({"message": "KEY_ERROR"}, status=400)
 
+
 class PostingListView(APIView):
     '''
     # 게시글 목록 불러오기
@@ -176,7 +177,9 @@ class CommentView(APIView):
     '''
     # 댓글, 대댓글 생성하기
     '''
-
+    
+    # 바디에 comment_id가 들어오는 걸 수동으로 해야함 지금의 로직으로. 이 부분을 수정해야함. 
+    
     parameter_token = openapi.Parameter(
         "Authorization",
         openapi.IN_HEADER,
@@ -184,45 +187,59 @@ class CommentView(APIView):
         type = openapi.TYPE_STRING
     )
     
-    @swagger_auto_schema(request_body = CommentSerializer, manual_parameters = [parameter_token])
+    query_comment_id = openapi.Parameter(
+        "comment_id",
+        openapi.IN_QUERY,
+        description = "댓글 ID를 넣어주세요",
+        type = openapi.TYPE_INTEGER
+    )
+    
+    error_field = openapi.Schema(
+        'error', # 제목 
+        description = '입력 부분을 수정해주세요', # 설명
+        type=openapi.TYPE_STRING # 타입
+    )
+    
+    @swagger_auto_schema(request_body = CommentSerializer, 
+                         manual_parameters = [parameter_token, query_comment_id],
+                         responses = {
+                             400 : error_field # responses 
+                             }
+                         )
     @login_decorator
     def post(self, request, posting_id):
-        try:
-            data       = json.loads(request.body)
-            user       = request.user
-            content    = data.get("content", None)
-            comment_id = data.get("comment_id", None)
+        data       = json.loads(request.body)
+        user       = request.user
+        content    = data.get("content", None)
+        comment_id = int(request.GET.get("comment_id", 0))
+        
+        if not content:
+            return JsonResponse({"message" : "CHECK_YOUR_INPUT"}, status=400)
+        
+        if not Posting.objects.filter(id=posting_id).exists():
+            return JsonResponse({"message" : "NOT_POSTING_ID"}, status=400)
+        
+        posting = Posting.objects.get(id=posting_id)
+        
+        if not comment_id:
             
-            if not (content and posting_id):
-                return JsonResponse({"message" : "CHECK_YOUR_INPUT"}, status=400)
-            
-            if not Posting.objects.filter(id=posting_id).exists():
-                return JsonResponse({"message" : "NOT_POSTING_ID"}, status=400)
-            
-            posting = Posting.objects.get(id=posting_id)
-            
-            if not comment_id:
-                
-                Comment.objects.create(
-                    content        = content,
-                    user           = user,
-                    posting        = posting,
-                    parent_comment_id = 0
-                )
-                
-                return JsonResponse({"message" : "POST COMMENT"}, status=200)
-                
             Comment.objects.create(
-                content           = content,
-                user              = user,
-                posting           = posting,
-                parent_comment_id = Comment.objects.get(id=comment_id).id
+                content        = content,
+                user           = user,
+                posting        = posting,
+                parent_comment_id = 0
             )
             
-            return JsonResponse({"message" : "POST RECOMMENT"}, status=200)
+            return JsonResponse({"message" : "CREATE_COMMENT"}, status=201)
             
-        except KeyError:
-            return JsonResponse({"key error" : "KEY_ERROR"}, status=400)
+        Comment.objects.create(
+            content           = content,
+            user              = user,
+            posting           = posting,
+            parent_comment_id = Comment.objects.get(id=comment_id).id
+        )
+        
+        return JsonResponse({"message" : "CREATE_RECOMMENT"}, status=201)
 
 
 class CommentListView(APIView):
@@ -265,14 +282,10 @@ class CommentListView(APIView):
     
     @swagger_auto_schema(manual_parameters = [query_parent_comment_id, query_limit, query_offset])
     def get(self, request, posting_id):
-        
         try:
             parent_comment_id = request.GET.get("parent_comment_id",0)
             offset            = int(request.GET.get("offset", 0))
             limit             = int(request.GET.get("limit", 10))
-            
-            print(type(offset))
-            print(type(limit))
             
             if parent_comment_id == 0:
                 all_comments = Comment.objects.filter(posting_id=posting_id, parent_comment_id=0)
@@ -292,7 +305,7 @@ class CommentListView(APIView):
                 ]
             return JsonResponse({"message" : comment_list}, status=200)
         
-        except TypeError.offset:
+        except TypeError:
             return JsonResponse({"message" : "TYPE ERROR"}, status=400)
         
 class SearchView(APIView):
@@ -340,13 +353,3 @@ class SearchView(APIView):
 
             except KeyError:
                 return JsonResponse({"key error" : "KEY_ERROR"}, status=400)
-            
-            
-# test_param = openapi.Parameter('test', openapi.IN_QUERY, description="test manual param", type=openapi.TYPE_BOOLEAN)
-# user_response = openapi.Response('response description', UserSerializer)
-
-# @swagger_auto_schema(method='get', manual_parameters=[test_param], responses={200: user_response})
-# @swagger_auto_schema(methods=['put', 'post'], request_body=UserSerializer)
-# @api_view(['GET', 'PUT', 'POST'])
-# def user_detail(request, pk):
-#     ...
