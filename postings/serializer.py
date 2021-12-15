@@ -1,4 +1,4 @@
-from .models import Comment, Posting
+from .models        import Comment, Posting
 from rest_framework import serializers
 
 

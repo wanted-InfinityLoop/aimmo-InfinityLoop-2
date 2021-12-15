@@ -1,17 +1,19 @@
 import json
 
-from rest_framework.views import APIView
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
+from django.db.models.fields import PositiveIntegerField
 
-from django.http import JsonResponse
-from django.views import View
+from rest_framework.views import APIView
+from drf_yasg.utils       import swagger_auto_schema
+from drf_yasg             import openapi
+
+from django.http      import JsonResponse
+from django.views     import View
 from django.db.models import Q
 
 from users.models import User
-from .models import Category, Posting, Comment
-from core.utils import login_decorator
-from .serializer import PostingSerializer, CommentSerializer, SearchSerializer
+from .models      import Category, Posting, Comment
+from core.utils   import login_decorator
+from .serializer  import PostingSerializer, CommentSerializer, SearchSerializer
 
 class PostingCreateView(APIView):
     '''
@@ -133,6 +135,7 @@ class PostingView(APIView):
         except KeyError:
             return JsonResponse({"message": "KEY_ERROR"}, status=400)
 
+
 class PostingListView(APIView):
     '''
     # 게시글 목록 불러오기
@@ -174,42 +177,137 @@ class CommentView(APIView):
     '''
     # 댓글, 대댓글 생성하기
     '''
-
+    
+    # 바디에 comment_id가 들어오는 걸 수동으로 해야함 지금의 로직으로. 이 부분을 수정해야함. 
+    
     parameter_token = openapi.Parameter(
         "Authorization",
         openapi.IN_HEADER,
         description = "access_token",
         type = openapi.TYPE_STRING
     )
-    @swagger_auto_schema(request_body = CommentSerializer, manual_parameters = [parameter_token])
+    
+    query_comment_id = openapi.Parameter(
+        "comment_id",
+        openapi.IN_QUERY,
+        description = "댓글 ID를 넣어주세요",
+        type = openapi.TYPE_INTEGER
+    )
+    
+    error_field = openapi.Schema(
+        'error', # 제목 
+        description = '입력 부분을 수정해주세요', # 설명
+        type=openapi.TYPE_STRING # 타입
+    )
+    
+    @swagger_auto_schema(request_body = CommentSerializer, 
+                         manual_parameters = [parameter_token, query_comment_id],
+                         responses = {
+                             400 : error_field # responses 
+                             }
+                         )
     @login_decorator
     def post(self, request, posting_id):
-        try:
-            data    = json.loads(request.body)
-            user    = request.user
-            content = data.get('content', None)
-            
-            if not (content and posting_id):
-                return JsonResponse({"message" : "CHECK_YOUR_INPUT"}, status=400)
-            
-            if not Posting.objects.filter(id=posting_id).exists():
-                return JsonResponse({"message" : "NOT_POSTING_ID"}, status=400)
-            
-            posting = Posting.objects.get(id=posting_id)
+        data       = json.loads(request.body)
+        user       = request.user
+        content    = data.get("content", None)
+        comment_id = int(request.GET.get("comment_id", 0))
+        
+        if not content:
+            return JsonResponse({"message" : "CHECK_YOUR_INPUT"}, status=400)
+        
+        if not Posting.objects.filter(id=posting_id).exists():
+            return JsonResponse({"message" : "NOT_POSTING_ID"}, status=400)
+        
+        posting = Posting.objects.get(id=posting_id)
+        
+        if not comment_id:
             
             Comment.objects.create(
-                content           = content,
-                user              = user,
-                posting           = posting,
-                depth             = 0,
-                parent_comment_id = Comment.objects.filter(posting__id=posting.id).first().id
+                content        = content,
+                user           = user,
+                posting        = posting,
+                parent_comment_id = 0
             )
             
-            return JsonResponse({"message" : "SUCCESS"}, status=200)
+            return JsonResponse({"message" : "CREATE_COMMENT"}, status=201)
             
-        except KeyError:
-            return JsonResponse({"key error" : "KEY_ERROR"}, status=400)
+        Comment.objects.create(
+            content           = content,
+            user              = user,
+            posting           = posting,
+            parent_comment_id = Comment.objects.get(id=comment_id).id
+        )
+        
+        return JsonResponse({"message" : "CREATE_RECOMMENT"}, status=201)
 
+
+class CommentListView(APIView):
+    
+    '''
+    # 댓글, 대댓글 조회하기
+    '''
+    
+    # CommentView, 
+    
+    
+    # comment, parent_comment_id를 식별해서 이에 속하는 글을 조회할 수 있게 한다
+    # comment   = parent_id = 0
+    # recomment = parent_id = comment_id
+    # posting_id
+    
+    # CommentView 클래스에 하나로 하는 것 알아보기
+    # Pagination 
+    # drf-yasg, parameter 설정 알아보기
+    # select_related, 
+    
+    query_parent_comment_id = openapi.Parameter(
+        "parent_comment_id",
+        openapi.IN_QUERY,
+        description = "parent_comment_id",
+        type = openapi.TYPE_INTEGER
+    )
+    query_limit = openapi.Parameter(
+        "limit",
+        openapi.IN_QUERY,
+        description = "limit",
+        type = openapi.TYPE_STRING
+    )
+    query_offset = openapi.Parameter(
+        "offset",
+        openapi.IN_QUERY,
+        description = "offset",
+        type = openapi.TYPE_STRING
+    )
+    
+    @swagger_auto_schema(manual_parameters = [query_parent_comment_id, query_limit, query_offset])
+    def get(self, request, posting_id):
+        try:
+            parent_comment_id = request.GET.get("parent_comment_id",0)
+            offset            = int(request.GET.get("offset", 0))
+            limit             = int(request.GET.get("limit", 10))
+            
+            if parent_comment_id == 0:
+                all_comments = Comment.objects.filter(posting_id=posting_id, parent_comment_id=0)
+                
+            else:
+                all_comments = Comment.objects.filter(posting_id=posting_id, parent_comment_id=parent_comment_id)
+            
+            comments = all_comments[offset:offset+limit]
+            
+            comment_list = [
+                {
+                    "content"           : comment.content,
+                    "user"              : comment.user.email,
+                    "posting_title"     : comment.posting.title,
+                    "parent_comment_id" : comment.parent_comment_id
+                    } for comment in comments
+                ]
+            return JsonResponse({"message" : comment_list}, status=200)
+        
+        except TypeError:
+            return JsonResponse({"message" : "TYPE ERROR"}, status=400)
+        
 class SearchView(APIView):
      
     '''
@@ -229,7 +327,6 @@ class SearchView(APIView):
                 
                 if not Posting.objects.filter(Q(author__name=keyword)|Q(title__icontains=keyword)|Q(text__icontains=keyword)).exists():
                     return JsonResponse({"message" : "NOT_FOUND_POSTING"}, status=400)
-                
                 
                 postings = Posting.objects.filter(Q(author__name=keyword)|Q(title__icontains=keyword)|Q(text__icontains=keyword))
 
