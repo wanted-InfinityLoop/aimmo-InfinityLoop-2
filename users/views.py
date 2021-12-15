@@ -7,11 +7,10 @@ from rest_framework.views import APIView
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from django.http import JsonResponse
-
+from django.http  import JsonResponse
 from users.models import User
-from my_settings import MY_SECRET_KEY
-from .serializer import UserSignInSerializer, UserSignUpSerializer
+from my_settings  import MY_SECRET_KEY
+from .serializer  import UserSignInSerializer, UserSignUpSerializer
 
 
 class SignupView(APIView):
