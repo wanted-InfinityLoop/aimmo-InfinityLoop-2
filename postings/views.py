@@ -13,7 +13,7 @@ from django.db.models import Q
 from users.models import User
 from .models      import Category, Posting, Comment
 from core.utils   import login_decorator
-from .serializer  import PostingSerializer, CommentSerializer, SearchSerializer
+from .serializer  import PostingSerializer, CommentSerializer
 
 class PostingCreateView(APIView):
     '''
@@ -127,11 +127,11 @@ class PostingView(APIView):
 
             posting.delete()
             
-            # 확인 필요
+
             return JsonResponse(
                 {"message": f"{posting.title} has successfully deleted"}, status=204
             )
-            
+
         except KeyError:
             return JsonResponse({"message": "KEY_ERROR"}, status=400)
 
@@ -140,9 +140,7 @@ class PostingListView(APIView):
     '''
     # 게시글 목록 불러오기
     '''
-    
-    # pasination 확인 필요 in swagger
-     
+
     def get(self, request):
         try:
             OFFSET = int(request.GET.get("offset", 0))
@@ -177,9 +175,7 @@ class CommentView(APIView):
     '''
     # 댓글, 대댓글 생성하기
     '''
-    
-    # 바디에 comment_id가 들어오는 걸 수동으로 해야함 지금의 로직으로. 이 부분을 수정해야함. 
-    
+
     parameter_token = openapi.Parameter(
         "Authorization",
         openapi.IN_HEADER,
@@ -243,24 +239,11 @@ class CommentView(APIView):
 
 
 class CommentListView(APIView):
-    
+
     '''
     # 댓글, 대댓글 조회하기
     '''
-    
-    # CommentView, 
-    
-    
-    # comment, parent_comment_id를 식별해서 이에 속하는 글을 조회할 수 있게 한다
-    # comment   = parent_id = 0
-    # recomment = parent_id = comment_id
-    # posting_id
-    
-    # CommentView 클래스에 하나로 하는 것 알아보기
-    # Pagination 
-    # drf-yasg, parameter 설정 알아보기
-    # select_related, 
-    
+
     query_parent_comment_id = openapi.Parameter(
         "parent_comment_id",
         openapi.IN_QUERY,
@@ -307,28 +290,29 @@ class CommentListView(APIView):
         
         except TypeError:
             return JsonResponse({"message" : "TYPE ERROR"}, status=400)
-        
+
+
 class SearchView(APIView):
-     
     '''
     # 작성자 또는 제목으로 검색하기
     '''
-    #1. 검색어를 가져온다.
-    #2. 검색어를 해당 모델에서 필터링한다.
-    #3. 결과에 따라 응답한다.
-    @swagger_auto_schema(operation_description="검색하기", request_body = SearchSerializer)
-    def post(self, request):
+
+    query_keyword = openapi.Parameter(
+        "keyword",
+        openapi.IN_QUERY,
+        description = "검색할 작성자 또는 제목 또는 내용을 입력하세요",
+        type = openapi.TYPE_STRING
+    )
+
+    @swagger_auto_schema(operation_description="검색하기", manual_parameters = [query_keyword])
+    def get(self, request):
             try:
-                data    = json.loads(request.body)
-                keyword = data.get("author", None)
-                
-                if not keyword:
-                    return JsonResponse({"message" : "CHECK_YOUR_INPUT"}, status=400)
-                
-                if not Posting.objects.filter(Q(author__name=keyword)|Q(title__icontains=keyword)|Q(text__icontains=keyword)).exists():
-                    return JsonResponse({"message" : "NOT_FOUND_POSTING"}, status=400)
-                
+                keyword = request.GET.get("keyword")
+
                 postings = Posting.objects.filter(Q(author__name=keyword)|Q(title__icontains=keyword)|Q(text__icontains=keyword))
+
+                if not postings:
+                    return JsonResponse({"message" : "NOT_FOUND_POSTING"}, status=400)
 
                 result = {
                     "count": len(postings),
@@ -341,15 +325,12 @@ class SearchView(APIView):
                             "category"   : posting.category.name,
                             "created_at" : posting.created_at,
                             "updated_at" : posting.updated_at,
-                        }
+                        } 
                         for posting in postings
                     ],
                 }
 
                 return JsonResponse({"result": result}, status=200)
 
-            except postings.DoesNotExist:
-                return JsonResponse({"model error" : "MODEL_ERROR"}, status=400)
-
-            except KeyError:
-                return JsonResponse({"key error" : "KEY_ERROR"}, status=400)
+            except ValueError:
+                return JsonResponse({"message" : "VALUE_ERROR"}, status=400)
