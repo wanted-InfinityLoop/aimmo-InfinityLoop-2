@@ -12,6 +12,7 @@ class Posting(AbstractTimeStamped):
     text     = models.TextField()
     author   = models.ForeignKey("users.User", on_delete=models.CASCADE)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, related_name = "posting")
+    count    = models.PositiveIntegerField(default=0)
 
     class Meta:
         db_table = "postings"

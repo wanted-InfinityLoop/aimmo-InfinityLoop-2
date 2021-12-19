@@ -15,6 +15,7 @@ from .models      import Category, Posting, Comment
 from core.utils   import login_decorator
 from .serializer  import PostingSerializer, CommentSerializer
 
+
 class PostingCreateView(APIView):
     '''
     # 게시글 작성
@@ -40,18 +41,31 @@ class PostingCreateView(APIView):
                 author   = user,
             )
 
+            posting.count += 1
+            posting.save()
+
             return JsonResponse(
                 {"message": f"{posting.title} has successfully posted"}, status=201
             )
         except KeyError:
             return JsonResponse({"message": "KEY_ERROR"}, status=400)
-        
+
+
 class PostingView(APIView):
     
     '''
     # 게시글 불러오기 / 게시글 detail view
     '''
 
+    parameter_token = openapi.Parameter(
+        "Authorization",
+        openapi.IN_HEADER,
+        description = "access_token",
+        type = openapi.TYPE_STRING
+    )
+
+    @swagger_auto_schema(manual_parameters = [parameter_token])
+    @login_decorator
     def get(self, request, posting_id):
         if not Posting.objects.filter(id=posting_id).exists():
             return JsonResponse(
@@ -59,6 +73,14 @@ class PostingView(APIView):
             )
 
         posting = Posting.objects.get(id=posting_id)
+
+        if request.user != posting.author:
+            posting.count += 1
+
+        else:
+            posting.count = posting.count
+
+        posting.save()
 
         result = {
             "id"         : posting.id,
@@ -68,6 +90,7 @@ class PostingView(APIView):
             "category"   : posting.category.name,
             "created_at" : posting.created_at,
             "updated_at" : posting.updated_at,
+            "count"      : posting.count
         }
         return JsonResponse({"result": result}, status=200)
     
@@ -81,6 +104,7 @@ class PostingView(APIView):
         description = "access_token",
         type = openapi.TYPE_STRING
     )
+
     @swagger_auto_schema(request_body = PostingSerializer, manual_parameters = [parameter_token])
     @login_decorator
     def put(self, request, posting_id):
@@ -170,6 +194,7 @@ class PostingListView(APIView):
         except KeyError:
             return JsonResponse({"message": "KEY_ERROR"}, status=400)
 
+
 class CommentView(APIView):
 
     '''
@@ -197,11 +222,11 @@ class CommentView(APIView):
     )
     
     @swagger_auto_schema(request_body = CommentSerializer, 
-                         manual_parameters = [parameter_token, query_comment_id],
-                         responses = {
-                             400 : error_field # responses 
-                             }
-                         )
+                        manual_parameters = [parameter_token, query_comment_id],
+                        responses = {
+                            400 : error_field # responses 
+                            }
+                        )
     @login_decorator
     def post(self, request, posting_id):
         data       = json.loads(request.body)
