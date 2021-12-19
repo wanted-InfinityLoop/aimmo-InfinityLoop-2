@@ -1,7 +1,5 @@
 import json
 
-from django.db.models.fields import PositiveIntegerField
-
 from rest_framework.views import APIView
 from drf_yasg.utils       import swagger_auto_schema
 from drf_yasg             import openapi
