@@ -243,9 +243,9 @@ class CommentView(APIView):
         if not comment_id:
             
             Comment.objects.create(
-                content        = content,
-                user           = user,
-                posting        = posting,
+                content           = content,
+                user              = user,
+                posting           = posting,
                 parent_comment_id = 0
             )
             
@@ -277,42 +277,38 @@ class CommentListView(APIView):
         "limit",
         openapi.IN_QUERY,
         description = "limit",
-        type = openapi.TYPE_STRING
+        type = openapi.TYPE_INTEGER
     )
     query_offset = openapi.Parameter(
         "offset",
         openapi.IN_QUERY,
         description = "offset",
-        type = openapi.TYPE_STRING
+        type = openapi.TYPE_INTEGER
     )
     
     @swagger_auto_schema(manual_parameters = [query_parent_comment_id, query_limit, query_offset])
     def get(self, request, posting_id):
-        try:
-            parent_comment_id = request.GET.get("parent_comment_id",0)
-            offset            = int(request.GET.get("offset", 0))
-            limit             = int(request.GET.get("limit", 10))
-            
-            if parent_comment_id == 0:
-                all_comments = Comment.objects.filter(posting_id=posting_id, parent_comment_id=0)
-                
-            else:
-                all_comments = Comment.objects.filter(posting_id=posting_id, parent_comment_id=parent_comment_id)
-            
-            comments = all_comments[offset:offset+limit]
-            
-            comment_list = [
-                {
-                    "content"           : comment.content,
-                    "user"              : comment.user.email,
-                    "posting_title"     : comment.posting.title,
-                    "parent_comment_id" : comment.parent_comment_id
-                    } for comment in comments
-                ]
-            return JsonResponse({"message" : comment_list}, status=200)
+        parent_comment_id = request.GET.get("parent_comment_id",0)
+        offset            = int(request.GET.get("offset", 0))
+        limit             = int(request.GET.get("limit", 10))
         
-        except TypeError:
-            return JsonResponse({"message" : "TYPE ERROR"}, status=400)
+        if parent_comment_id == 0:
+            all_comments = Comment.objects.filter(posting_id=posting_id, parent_comment_id=0)
+            
+        else:
+            all_comments = Comment.objects.filter(posting_id=posting_id, parent_comment_id=parent_comment_id)
+        
+        comments = all_comments[offset:offset+limit]
+        
+        comment_list = [
+            {
+                "content"           : comment.content,
+                "user"              : comment.user.email,
+                "posting_title"     : comment.posting.title,
+                "parent_comment_id" : comment.parent_comment_id
+                } for comment in comments
+            ]
+        return JsonResponse({"message" : comment_list}, status=200)
 
 
 class SearchView(APIView):
