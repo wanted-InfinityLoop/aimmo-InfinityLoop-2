@@ -86,8 +86,8 @@ class PostingView(APIView):
             "title"      : posting.title,
             "text"       : posting.text,
             "category"   : posting.category.name,
-            "created_at" : posting.created_at,
-            "updated_at" : posting.updated_at,
+            "created_at" : posting.created_at.strftime("%Y-%m-%d %H:%M"),
+            "updated_at" : posting.updated_at.strftime("%Y-%m-%d %H:%M"),
             "count"      : posting.count
         }
         return JsonResponse({"result": result}, status=200)
@@ -342,8 +342,8 @@ class SearchView(APIView):
                             "title"      : posting.title,
                             "text"       : posting.text,
                             "category"   : posting.category.name,
-                            "created_at" : posting.created_at,
-                            "updated_at" : posting.updated_at,
+                            "created_at" : posting.created_at.strftime("%Y-%m-%d %H:%M"),
+                            "updated_at" : posting.updated_at.strftime("%Y-%m-%d %H:%M"),
                         } 
                         for posting in postings
                     ],
