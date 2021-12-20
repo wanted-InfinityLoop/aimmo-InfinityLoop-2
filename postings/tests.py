@@ -1,208 +1,180 @@
+
 import json
+import bcrypt
+import jwt
 
 from django.test import TestCase, Client
 
-from postings.models import Posting
-from users.models import User
+from postings.models import Category, Posting, Comment
+from users.models    import User
+from my_settings     import MY_SECRET_KEY, algorithm
 
 
-class PostingCRUDTest(TestCase):
+class CommentViewTest(TestCase):
     def setUp(self):
-        User.objects.create(id=1, name="Ted", email="hayejun1013@naver.com", password="abcd1234"),
-        User.objects.create(id=2, name="Ted", email="hayejun1013@naver.co.kr", password="abcd1234")
+        self.client      = Client()
+        password        = "12341234aA!"
+        hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
         
-        Posting.objects.create(id=1, title="Title", text="text", author_id=1)
+        User.objects.create(
+            id       = 1, 
+            name     = "지석진", 
+            email    = "test1@gmail.com", 
+            password = hashed_password
+            )
+        
+        Category.objects.create(
+            id   = 1,
+            name = "공지사항"
+        )
+        
+        Posting.objects.create(
+            id        = 1, 
+            title     = "testing_title", 
+            text      = "testing_content", 
+            author_id = 1
+            )
+        
+        Comment.objects.create(
+            id                = 1,
+            content           = "1번 글에 대한 댓글",
+            user              = User.objects.get(id=1),
+            posting           = Posting.objects.get(id=1),
+            parent_comment_id = 0
+        )
+        
+        self.user_token_1 = jwt.encode(
+            {
+                "id" : 1
+            }, 
+            MY_SECRET_KEY,
+            algorithm
+        )
 
     def tearDown(self):
+        Comment.objects.all().delete()
         Posting.objects.all().delete()
+        Category.objects.all().delete()
         User.objects.all().delete()
-
-    # def test_get_posting_success(self):
-    #     client = Client()
-    #     response = client.get("/postings")
-
-    #     posting = Posting.objects.get(id=1)
-
-    #     self.assertEqual(response.status_code, 200)
-    #     self.assertEqual(
-    #         response.json(),
-    #         {
-    #             "result": {
-    #                 "id": posting.id,
-    #                 "author": posting.author.name,
-    #                 "title": posting.title,
-    #                 "text": posting.text,
-    #                 "created_time": posting.created_time.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
-    #                 "updated_at": posting.updated_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]+ "Z",
-    #             }
-    #         },
-    #     )
-
-    # def test_get_posting_not_found(self):
-    #     client = Client()
-    #     response = client.get("/postings")
-
-    #     self.assertEqual(response.status_code, 404)
-    #     self.assertEqual(response.json(), {"message": "POSTING_10_NOT_FOUND"})
-
-    # def test_create_post_success(self):
-    #     client = Client()
-    #     data = {
-    #         "title": "title",
-    #         "text": "text",
-    #     }
-    #     header = {
-    #         "HTTP_Authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MX0.DiY2YcXuu_5bwMbFqlTe_x4-0Msg6_Lmq3YVhsDr4LU"
-    #     }
-
-    #     response = client.post(
-    #         "/postings", json.dumps(data), content_type="application/json", **header
-    #     )
-
-    #     self.assertEqual(response.status_code, 201)
-    #     self.assertEqual(response.json(), {"message": "title has successfully posted"})
-
-    def test_create_post_auth_error(self):
-        client = Client()
-        data = {
-            "title": "title",
-            "text": "text",
+        
+    def test_post_create_comment_success(self):
+        header = {"HTTP_Authorization":f"Bearer {self.user_token_1}"}
+        data   = {
+            "content" : "posting_1번 글에 대한 댓글"
         }
-        header = {
-            "HTTP_Authorization": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MX0.DiY2YcXuu_5bwMbFqlTe_x4-0Msg6_Lmq3YVhsDr4LU"
+        
+        response = self.client.post(
+            "/postings/1/comment",
+            json.dumps(data),
+            content_type="application/json",
+            **header
+            )
+        
+        self.assertEqual(response.json(), {"message" : "CREATE_COMMENT"})
+        self.assertEqual(response.status_code, 201)
+
+    def test_post_create_comment_not_content_fail(self):
+        header = {"HTTP_Authorization":f"Bearer {self.user_token_1}"}
+        data   = {
+            "content" : ""
         }
-
-        response = client.post(
-            "/postings", json.dumps(data), content_type="application/json", **header
-        )
-
-        self.assertEqual(response.status_code, 401)
-        self.assertEqual(response.json(), {"message": "AUTH_ERROR"})
-
-    def test_create_post_invalid_token(self):
-        client = Client()
-        data = {
-            "title": "title",
-            "text": "text",
-        }
-        header = {
-            "HTTP_Authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MX0.DiY2YcXuu_5bwMbFqlTe_x4-0Msg6_Lmq3YVhsDr4L"
-        }
-
-        response = client.post(
-            "/postings", json.dumps(data), content_type="application/json", **header
-        )
-
-        self.assertEqual(response.status_code, 401)
-        self.assertEqual(response.json(), {"message": "INVALID_TOKEN"})
-
-    def test_create_post_key_error(self):
-        client = Client()
-        data = {
-            "title": "title",
-        }
-        header = {
-            "HTTP_Authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MX0.DiY2YcXuu_5bwMbFqlTe_x4-0Msg6_Lmq3YVhsDr4LU"
-        }
-
-        response = client.post(
-            "/postings", json.dumps(data), content_type="application/json", **header
-        )
-
+        
+        response = self.client.post(
+            "/postings/1/comment",
+            json.dumps(data),
+            content_type="application/json",
+            **header
+            )
+        
+        self.assertEqual(response.json(), {"message" : "CHECK_YOUR_INPUT"})
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json(), {"message": "KEY_ERROR"})
 
-    def test_put_post_success(self):
-        client = Client()
-        data = {
-            "text": "text updated!",
+    def test_post_create_comment_not_posting_id_fail(self):
+        header = {"HTTP_Authorization":f"Bearer {self.user_token_1}"}
+        data   = {
+            "content" : "posting_1번 글에 대한 댓글"
         }
-        header = {
-            "HTTP_Authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MX0.DiY2YcXuu_5bwMbFqlTe_x4-0Msg6_Lmq3YVhsDr4LU"
-        }
+        
+        response = self.client.post(
+            "/postings/10/comment",
+            json.dumps(data),
+            content_type="application/json",
+            **header
+            )
+        
+        self.assertEqual(response.json(), {"message" : "NOT_POSTING_ID"})
+        self.assertEqual(response.status_code, 400)
 
-        response = client.put(
-            "/postings/1", json.dumps(data), content_type="application/json", **header
+    def test_post_create_recomment_success(self):
+        header = {"HTTP_Authorization":f"Bearer {self.user_token_1}"}
+        data   = {
+            "content" : "posting_1번 글에 대한 댓글"
+        }
+        
+        response = self.client.post(
+            "/postings/1/comment?comment_id=1",
+            json.dumps(data),
+            content_type="application/json",
+            **header
+            )
+        
+        self.assertEqual(response.json(), {"message" : "CREATE_RECOMMENT"})
+        self.assertEqual(response.status_code, 201)
+        
+        
+class CommentListViewTest(TestCase):
+    def setUp(self):
+        self.client     = Client()
+        password        = "12341234aA!"
+        hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        
+        User.objects.create(
+            id       = 1, 
+            name     = "지석진", 
+            email    = "test1@gmail.com", 
+            password = hashed_password
+            )
+        
+        Category.objects.create(
+            id   = 1,
+            name = "공지사항"
+        )
+        
+        posting_1 = Posting.objects.create(
+            id        = 1, 
+            title     = "testing_title", 
+            text      = "testing_content", 
+            author_id = 1
+            )
+        
+        Comment.objects.create(
+            id                = 1,
+            content           = "1번 글에 대한 댓글",
+            user              = User.objects.get(id=1),
+            posting           = posting_1,
+            parent_comment_id = 0
         )
 
+    def tearDown(self):
+        Comment.objects.all().delete()
+        Posting.objects.all().delete()
+        Category.objects.all().delete()
+        User.objects.all().delete()
+        
+    def test_comment_list_view_success(self):
+        
+        comment_list = [
+            {
+                "content"           : "1번 글에 대한 댓글",
+                "user"              : "test1@gmail.com",
+                "posting_title"     : "testing_title",
+                "parent_comment_id" : 0
+                }
+            ]
+        
+        response = self.client.get(
+            "/postings/1/commentlist?parent_comment_id=0&limit=5&offset=0"
+            )
+        
+        self.assertEqual(response.json(), {"message" : comment_list}) 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"message": "Title has successfully updated"})
-
-    def test_put_post_forbidden(self):
-        client = Client()
-        data = {
-            "text": "text updated!",
-        }
-        header = {
-            "HTTP_Authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6Mn0.OLjKxY1ipx6vU8RSSkPtwE_d-0S9_qMVPg9syryaDQA"
-        }
-
-        response = client.put(
-            "/postings/1", json.dumps(data), content_type="application/json", **header
-        )
-
-        self.assertEqual(response.status_code, 403)
-        self.assertEqual(response.json(), {"message": "FORBIDDEN"})
-
-    def test_put_post_key_error(self):
-        client = Client()
-        data = {}
-        header = {
-            "HTTP_Authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MX0.DiY2YcXuu_5bwMbFqlTe_x4-0Msg6_Lmq3YVhsDr4LU"
-        }
-
-        response = client.put(
-            "/postings/1", json.dumps(data), content_type="application/json", **header
-        )
-
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json(), {"message": "KEY_ERROR"})
-
-    def test_delete_post_success(self):
-        client = Client()
-
-        header = {
-            "HTTP_Authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MX0.DiY2YcXuu_5bwMbFqlTe_x4-0Msg6_Lmq3YVhsDr4LU"
-        }
-
-        response = client.delete("/postings/1", **header)
-
-        self.assertEqual(response.status_code, 204)
-
-    def test_delete_post_forbidden(self):
-        client = Client()
-
-        header = {
-            "HTTP_Authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6Mn0.OLjKxY1ipx6vU8RSSkPtwE_d-0S9_qMVPg9syryaDQA"
-        }
-
-        response = client.put("/postings/1", **header)
-
-        self.assertEqual(response.status_code, 403)
-        self.assertEqual(response.json(), {"message": "FORBIDDEN"})
-
-    # def test_get_post_list_success(self):
-    #     client = Client()
-
-    #     response = client.get("/postings/list")
-
-    #     posting = Posting.objects.get(id=1)
-
-    #     result = {
-    #         "result": {
-    #             "count": 1,
-    #             "postings": [
-    #                 {
-    #                     "id": posting.id,
-    #                     "author": posting.author.name,
-    #                     "title": posting.title,
-    #                     "text": posting.text,
-    #                     "created_time": posting.created_time.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
-    #                     "updated_at": posting.updated_at.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
-    #                 }
-    #             ],
-    #         }
-    #     }
-
-    #     self.assertEqual(response.status_code, 200)
-    #     self.assertEqual(response.json(), result)
