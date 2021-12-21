@@ -18,6 +18,7 @@ INSTALLED_APPS = [
     "core",
     "postings",
     "users",
+    "django_extensions"
 ]
 
 MIDDLEWARE = [

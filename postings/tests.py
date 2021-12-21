@@ -153,7 +153,7 @@ class CommentViewTest(TestCase):
             content           = "1번 글에 대한 댓글",
             user              = User.objects.get(id=1),
             posting           = Posting.objects.get(id=1),
-            parent_comment_id = 08
+            parent_comment_id = 0
         )
         
         self.user_token_1 = jwt.encode(
