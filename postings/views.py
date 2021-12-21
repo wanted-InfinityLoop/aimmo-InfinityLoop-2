@@ -1,5 +1,7 @@
 import json
 
+from django.core import paginator
+
 from rest_framework.views import APIView
 from drf_yasg.utils       import swagger_auto_schema
 from drf_yasg             import openapi
@@ -12,6 +14,7 @@ from users.models import User
 from .models      import Category, Posting, Comment
 from core.utils   import login_decorator
 from .serializer  import PostingSerializer, CommentSerializer
+from django.core.paginator import Paginator
 
 
 class PostingCreateView(APIView):
@@ -293,10 +296,10 @@ class CommentListView(APIView):
         limit             = int(request.GET.get("limit", 10))
         
         if parent_comment_id == 0:
-            all_comments = Comment.objects.filter(posting_id=posting_id, parent_comment_id=0)
+            all_comments = Comment.objects.filter(posting_id=posting_id, parent_comment_id=0).select_related("user")
             
         else:
-            all_comments = Comment.objects.filter(posting_id=posting_id, parent_comment_id=parent_comment_id)
+            all_comments = Comment.objects.filter(posting_id=posting_id, parent_comment_id=parent_comment_id).select_related("user")
         
         comments = all_comments[offset:offset+limit]
         
@@ -328,7 +331,10 @@ class SearchView(APIView):
             try:
                 keyword = request.GET.get("keyword")
 
-                postings = Posting.objects.filter(Q(author__name=keyword)|Q(title__icontains=keyword)|Q(text__icontains=keyword))
+                postings = Posting.objects.filter(Q(author__name=keyword)|\
+                    Q(title__icontains=keyword)|\
+                        Q(text__icontains=keyword))\
+                    .select_related("category", "author")
 
                 if not postings:
                     return JsonResponse({"message" : "NOT_FOUND_POSTING"}, status=400)
